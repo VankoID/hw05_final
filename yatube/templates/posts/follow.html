@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% block title %} Посты авторов {% endblock %}
 {% block content %}
+<div class="container py-5">
   {% include 'includes/switcher.html' %}
   {% for post in page_obj %}  
     {% if post.group %}   
-      <a href="{% url 'posts:group_list' post.group.slug %}">
-        Все записи группы
-      </a>
+      {% include 'includes/card.html' with POST_URL=True %} 
     {% endif %}
-    {% if not forloop.last %}<hr>{% endif %}
+  {% if not forloop.last %}<hr>{% endif %}
   {% endfor %}
   {% include 'includes/paginator.html' %}
+</div> 
 {% endblock %}
