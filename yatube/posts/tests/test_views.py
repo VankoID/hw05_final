@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from yatube.settings import COUNT_OF_SHOWED_POSTS
 
-from posts.models import Post, Group, User, Comment
+from posts.models import Post, Group, User, Comment, Follow
 
 
 class PostPagesTest(TestCase):
@@ -252,3 +252,51 @@ class CommentsTest(TestCase):
         self.assertRedirects(response, reverse(
             'users:login') + '?next=' + reverse(
             'posts:add_comment', kwargs={'post_id': self.post.id}))
+
+
+class FollowTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user_follower = User.objects.create_user(username='User_2')
+        cls.user_following = User.objects.create_user(username='User_3')
+        
+        cls.post = Post.objects.create(
+            text='Текст поста для подписчиков',
+            author=cls.user_following
+        )
+
+    def setUp(self):
+        self.follower_client = Client()
+        self.follower_client.force_login(self.user_follower)
+        self.following_client = Client()
+        self.following_client.force_login(self.user_following)
+
+    def test_auth_can_subsribe_and_unsub(self):
+        """Тест авторизованного пользователя на подписку и отписку"""
+        self.follower_client.get(reverse('posts:profile_follow',
+                                              kwargs={'username':
+                                                      self.user_following.
+                                                      username}))
+        self.assertEqual(Follow.objects.all().count(), 1)
+        self.follower_client.get(reverse('posts:profile_follow',
+                                              kwargs={'username':
+                                                      self.user_following.
+                                                      username}))
+        self.follower_client.get(reverse('posts:profile_unfollow',
+                                              kwargs={'username':
+                                                      self.user_following.
+                                                      username}))
+        self.assertEqual(Follow.objects.all().count(), 0)
+
+    def test_subscription_feed(self):
+        """Тест записи пользователя в ленте подписчиков"""
+        Follow.objects.create(user=self.user_follower,
+                              author=self.user_following)
+        response = self.follower_client.get('/follow/')
+        follow_text = response.context.get('page_obj')[0].text
+        self.assertEqual(follow_text, self.post.text)
+        response = self.following_client.get('/follow/')
+        self.assertNotContains(response, self.post.text)
+
+        
