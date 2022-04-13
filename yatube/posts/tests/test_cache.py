@@ -28,7 +28,6 @@ class CacheTest(TestCase):
         response_before_delete = self.authorized_client.get(
             reverse('posts:index')
         )
-        response_before_delete.context.get('page_obj')[0]
         Post.objects.all().delete()
         response_after_delete = self.authorized_client.get(
             reverse('posts:index')
