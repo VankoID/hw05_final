@@ -260,7 +260,7 @@ class FollowTest(TestCase):
         super().setUpClass()
         cls.user_follower = User.objects.create_user(username='User_2')
         cls.user_following = User.objects.create_user(username='User_3')
-        
+
         cls.post = Post.objects.create(
             text='Текст поста для подписчиков',
             author=cls.user_following
@@ -274,19 +274,22 @@ class FollowTest(TestCase):
 
     def test_auth_can_subsribe_and_unsub(self):
         """Тест авторизованного пользователя на подписку и отписку"""
-        self.follower_client.get(reverse('posts:profile_follow',
-                                              kwargs={'username':
-                                                      self.user_following.
-                                                      username}))
+        self.follower_client.get(reverse(
+            'posts:profile_follow', kwargs={
+                'username': self.user_following.username
+            })
+        )
         self.assertEqual(Follow.objects.all().count(), 1)
-        self.follower_client.get(reverse('posts:profile_follow',
-                                              kwargs={'username':
-                                                      self.user_following.
-                                                      username}))
-        self.follower_client.get(reverse('posts:profile_unfollow',
-                                              kwargs={'username':
-                                                      self.user_following.
-                                                      username}))
+        self.follower_client.get(reverse(
+            'posts:profile_follow', kwargs={
+                'username': self.user_following.username
+            })
+        )
+        self.follower_client.get(reverse(
+            'posts:profile_unfollow', kwargs={
+                'username': self.user_following.username
+            })
+        )
         self.assertEqual(Follow.objects.all().count(), 0)
 
     def test_subscription_feed(self):
@@ -298,5 +301,3 @@ class FollowTest(TestCase):
         self.assertEqual(follow_text, self.post.text)
         response = self.following_client.get('/follow/')
         self.assertNotContains(response, self.post.text)
-
-        
