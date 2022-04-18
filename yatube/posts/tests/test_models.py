@@ -1,6 +1,7 @@
 from django.test import TestCase
+from django.conf import settings
 
-from ..models import Group, Post, User, SYMBOL_LIMIT
+from ..models import Group, Post, User
 
 
 class PostModelTest(TestCase):
@@ -16,7 +17,7 @@ class PostModelTest(TestCase):
     def test_model_have_correct_object_names_post(self):
         """Проверяем, что у модели POST корректно работает __str__."""
         post = PostModelTest.post
-        expected_object_name = post.text[:SYMBOL_LIMIT]
+        expected_object_name = post.text[:settings.SYMBOL_LIMIT]
         self.assertEqual(expected_object_name, str(post))
 
     def test_verbose_name(self):
