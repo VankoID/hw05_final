@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-
-from yatube.settings import SYMBOL_LIMIT
+from django.conf import settings
 
 
 User = get_user_model()
@@ -42,7 +41,7 @@ class Post(models.Model):
         verbose_name_plural = 'Посты'
 
     def __str__(self) -> str:
-        return self.text[:SYMBOL_LIMIT]
+        return self.text[:settings.SYMBOL_LIMIT]
 
 
 class Group(models.Model):
@@ -92,10 +91,22 @@ class Follow(models.Model):
     user = models.ForeignKey(
         User,
         related_name='follower',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name='Пользователь'
     )
     author = models.ForeignKey(
         User,
         related_name='following',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name='Подписчик'
     )
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+        constraints = [
+            models.UniqueConstraint(
+                name="%(app_label)s_%(class)s_unique_relationships",
+                fields=['user', 'author'],
+            ),
+        ]

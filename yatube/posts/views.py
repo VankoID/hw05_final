@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
-from yatube.settings import COUNT_OF_SHOWED_POSTS
+from django.conf import settings
 
 
 from .forms import CommentForm, PostForm
@@ -29,13 +29,12 @@ def group_posts(request, slug):
 def profile(request, username):
     author = get_object_or_404(User, username=username)
     user = request.user
-    following = False
-    if user.is_authenticated:
-        if Follow.objects.filter(user=user, author=author).exists():
-            following = True
+    following = (
+        request.user.is_authenticated and Follow.objects.filter(
+            user=user, author=author).exists()
+    )
     context = {
         'author': author,
-        'user': user,
         'following': following
     }
     context.update(paginator_page(author.posts.select_related(
@@ -44,7 +43,7 @@ def profile(request, username):
 
 
 def paginator_page(queryset, request):
-    paginator = Paginator(queryset, COUNT_OF_SHOWED_POSTS)
+    paginator = Paginator(queryset, settings.COUNT_OF_SHOWED_POSTS)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return {
@@ -54,7 +53,7 @@ def paginator_page(queryset, request):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post.objects.select_related('author'), pk=post_id)
-    form = CommentForm(request.POST or None)
+    form = CommentForm()
     comments = post.comments.select_related('author')
     context = {
         'post': post,
@@ -131,6 +130,5 @@ def profile_unfollow(request, username):
         user=request.user,
         author=author
     )
-    if follow.exists():
-        follow.delete()
+    follow.delete()
     return redirect('posts:profile', username=author)

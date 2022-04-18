@@ -1,12 +1,14 @@
 import shutil
 import tempfile
 
+from http import HTTPStatus
+
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.conf import settings
 
-from posts.models import Group, Post, User
+from posts.models import Group, Post, User, Comment
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -195,3 +197,62 @@ class PostFormTests(TestCase):
         self.assertEqual(change.text, form_data['text'])
         self.assertEqual(change.author, self.user)
         self.assertTrue(change.pub_date, self.post.pub_date)
+
+
+class CommentsTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='user')
+        cls.post = Post.objects.create(
+            text='Текст поста',
+            author=cls.user,
+        )
+        cls.comment = Comment.objects.create(
+            text='Тестовый текст комментария',
+            author=cls.user,
+            post=cls.post
+        )
+
+    def setUp(self):
+        self.guest_client = Client()
+        self.auth_client = Client()
+        self.auth_client.force_login(self.user)
+
+    def test_comment_created_authorized_user(self):
+        """Тестирование создания комментария авторизованным пользователем"""
+        comment_count = Comment.objects.all().count()
+        form_data = {
+            'text': 'Тестовый комментарий для авторизованного юзера',
+        }
+        response = self.auth_client.post(
+            reverse(
+                'posts:add_comment',
+                kwargs={'post_id': self.post.id}
+            ),
+            data=form_data,
+            follow=True
+        )
+        self.assertEqual(Comment.objects.all().count(), comment_count + 1)
+        self.assertTrue(Comment.objects.filter(
+            text=form_data['text'],
+            author=self.user
+        ).exists()
+        )
+        first_comment = response.context.get('comments')[0]
+        self.assertNotEqual(first_comment, form_data['text'])
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_comment_for_non_auth_user(self):
+        """Тестирование создания комментария не авторизованным пользователем"""
+        form_data = {
+            'text': 'Текст комментария_1',
+        }
+        response = self.guest_client.post(
+            reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
+            data=form_data,
+            follow=True
+        )
+        self.assertRedirects(response, reverse(
+            'users:login') + '?next=' + reverse(
+            'posts:add_comment', kwargs={'post_id': self.post.id}))

@@ -7,7 +7,6 @@
     {% if post.group %}   
       {% include 'includes/card.html' with POST_URL=True %} 
     {% endif %}
-  {% if not forloop.last %}<hr>{% endif %}
   {% endfor %}
   {% include 'includes/paginator.html' %}
 </div> 

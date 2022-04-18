@@ -1,12 +1,9 @@
-from http import HTTPStatus
-
 from django import forms
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.conf import settings
 
-from yatube.settings import COUNT_OF_SHOWED_POSTS
-
-from posts.models import Post, Group, User, Comment, Follow
+from posts.models import Post, Group, User, Follow, Comment
 
 
 class PostPagesTest(TestCase):
@@ -46,6 +43,7 @@ class PostPagesTest(TestCase):
             reverse('posts:post_edit', kwargs={
                 'post_id': f'{self.post.pk}'
             }): 'posts/post_create.html',
+            reverse('posts:follow_index'): 'posts/follow.html'
         }
         for reverse_name, template, in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
@@ -172,7 +170,7 @@ class PostPagesPaginatorTest(TestCase):
         for tested_url in list_urls.keys():
             response = self.author_client.get(tested_url)
         self.assertEqual(len(response.context.get('page_obj').object_list),
-                         COUNT_OF_SHOWED_POSTS)
+                         settings.COUNT_OF_SHOWED_POSTS)
 
     def test_second_page_contains_three_posts(self):
         """Проверка паджинатора на три поста"""
@@ -191,7 +189,7 @@ class PostPagesPaginatorTest(TestCase):
             response = self.author_client.get(tested_url)
         self.assertEqual(len(response.context.get(
             'page_obj').object_list),
-            self.COUNT_TEST_PAGES % COUNT_OF_SHOWED_POSTS
+            self.COUNT_TEST_PAGES % settings.COUNT_OF_SHOWED_POSTS
         )
 
 
@@ -211,47 +209,22 @@ class CommentsTest(TestCase):
         )
 
     def setUp(self):
-        self.guest_client = Client()
         self.auth_client = Client()
-        self.auth_client.force_login(self.user)
+        self.auth_client.force_login(CommentsTest.user)
 
-    def test_comment_created_authorized_user(self):
-        """Тестирование создания комментария авторизованным пользователем"""
-        comment_count = Comment.objects.all().count()
-        form_data = {
-            'text': 'Тестовый комментарий для авторизованного юзера',
+    def test_show_correct_context_post_edit(self):
+        """Проверка контекста формы комментария"""
+        response = self.auth_client.get(reverse(
+            'posts:post_detail',
+            kwargs={'post_id': CommentsTest.post.id}
+        ))
+        form_fields = {
+            'text': forms.fields.CharField,
         }
-        response = self.auth_client.post(
-            reverse(
-                'posts:add_comment',
-                kwargs={'post_id': self.post.id}
-            ),
-            data=form_data,
-            follow=True
-        )
-        self.assertEqual(Comment.objects.all().count(), comment_count + 1)
-        self.assertTrue(Comment.objects.filter(
-            text=form_data['text'],
-            author=self.user
-        ).exists()
-        )
-        first_comment = response.context.get('comments')[0]
-        self.assertNotEqual(first_comment, form_data['text'])
-        self.assertEqual(response.status_code, HTTPStatus.OK)
-
-    def test_comment_for_non_auth_user(self):
-        """Тестирование создания комментария не авторизованным пользователем"""
-        form_data = {
-            'text': 'Текст комментария_1',
-        }
-        response = self.guest_client.post(
-            reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
-            data=form_data,
-            follow=True
-        )
-        self.assertRedirects(response, reverse(
-            'users:login') + '?next=' + reverse(
-            'posts:add_comment', kwargs={'post_id': self.post.id}))
+        for value, expected in form_fields.items():
+            with self.subTest(value=value):
+                form_field = response.context.get('form').fields.get(value)
+                self.assertIsInstance(form_field, expected)
 
 
 class FollowTest(TestCase):
@@ -272,19 +245,17 @@ class FollowTest(TestCase):
         self.following_client = Client()
         self.following_client.force_login(self.user_following)
 
-    def test_auth_can_subsribe_and_unsub(self):
-        """Тест авторизованного пользователя на подписку и отписку"""
+    def test_auth_can_subscribe(self):
+        """Тест авторизованного пользователя на подписку"""
         self.follower_client.get(reverse(
             'posts:profile_follow', kwargs={
                 'username': self.user_following.username
             })
         )
         self.assertEqual(Follow.objects.all().count(), 1)
-        self.follower_client.get(reverse(
-            'posts:profile_follow', kwargs={
-                'username': self.user_following.username
-            })
-        )
+
+    def test_auth_can_unsubscribe(self):
+        """Тест авторизованного пользователя на отписку"""
         self.follower_client.get(reverse(
             'posts:profile_unfollow', kwargs={
                 'username': self.user_following.username

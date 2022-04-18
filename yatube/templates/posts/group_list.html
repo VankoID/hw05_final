@@ -3,7 +3,7 @@
 {% block content %}
   <div class="container py-5">
     <h1>{{ group.title }}</h1>
-    <p>{{ group.description|linebreaks }}</p>
+    <p>{{ group.description|linebreaksbr }}</p>
       {% for post in page_obj %}  
           {% include 'includes/card.html' with POST_URL=False%}
       {% endfor %}

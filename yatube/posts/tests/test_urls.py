@@ -35,7 +35,8 @@ class PostURLTests(TestCase):
             f'/posts/{self.post.pk}/': HTTPStatus.OK,
             f'/posts/{self.post.pk}/edit/': HTTPStatus.FOUND,
             '/create/': HTTPStatus.FOUND,
-            '/unexisting_page/': HTTPStatus.NOT_FOUND,
+            '/follow/': HTTPStatus.FOUND,
+            '/unexisting-page/': HTTPStatus.NOT_FOUND,
         }
         for address, status in templates_url_names.items():
             with self.subTest(address=address):
@@ -68,6 +69,7 @@ class PostURLTests(TestCase):
             'posts/profile.html': f'/profile/{PostURLTests.user.username}/',
             'posts/post_detail.html': f'/posts/{PostURLTests.post.pk}/',
             'posts/post_create.html': '/create/',
+            'posts/follow.html': '/follow/',
         }
         for template, address in templates_url_names.items():
             with self.subTest(address=address):
