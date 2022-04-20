@@ -174,16 +174,12 @@ class PostPagesPaginatorTest(TestCase):
 
     def test_second_page_contains_three_posts(self):
         """Проверка паджинатора на три поста"""
+        var_group = {'slug': PostPagesPaginatorTest.group.slug}
+        var_user = {'username': PostPagesPaginatorTest.user.username}
         list_urls = {
-            reverse('posts:index') + '?page=2': 'posts/index',
-            reverse('posts:group_list', kwargs={
-                'slug': PostPagesPaginatorTest.group.slug})
-            + '?page=2': 'group',
-            reverse('posts:profile', kwargs={
-                'username': PostPagesPaginatorTest.user.username
-            })
-            + '?page=2':
-            'profile',
+            f"{reverse('posts:index')}?page=2": 'posts/index',
+            f"{reverse('posts:group_list', kwargs=var_group)}?page=2": 'group',
+            f"{reverse('posts:profile', kwargs=var_user)}?page=2": 'profile',
         }
         for tested_url in list_urls.keys():
             response = self.author_client.get(tested_url)
@@ -212,12 +208,13 @@ class CommentsTest(TestCase):
         self.auth_client = Client()
         self.auth_client.force_login(CommentsTest.user)
 
-    def test_show_correct_context_post_edit(self):
+    def test_show_correct_context_post_detail_comment(self):
         """Проверка контекста формы комментария"""
         response = self.auth_client.get(reverse(
             'posts:post_detail',
-            kwargs={'post_id': CommentsTest.post.id}
-        ))
+            kwargs={'post_id': CommentsTest.post.id})
+        )
+
         form_fields = {
             'text': forms.fields.CharField,
         }
@@ -225,6 +222,16 @@ class CommentsTest(TestCase):
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
+        first_comment = response.context.get('comments')[0]
+        self.assertNotEqual(first_comment, CommentsTest.comment.text)
+        self.assertEqual(len(
+            response.context.get('comments')), Comment.objects.filter(
+                post__pk=self.post.pk).count()
+        )
+        self.assertTrue(
+            Comment.objects.filter(
+                text=self.comment).exists()
+        )
 
 
 class FollowTest(TestCase):

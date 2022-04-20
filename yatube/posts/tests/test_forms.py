@@ -75,8 +75,8 @@ class PostFormTests(TestCase):
             data=form_data,
             follow=True
         )
-        self.assertRedirects(response, reverse(
-            'users:login') + '?next=/create/'
+        self.assertRedirects(
+            response, f"{reverse('users:login')}?next=/create/"
         )
         self.assertEqual(Post.objects.count(), post_guest_count)
 
@@ -158,9 +158,10 @@ class PostFormTests(TestCase):
             data=form_data,
             follow=True
         )
-        self.assertRedirects(response, reverse(
-            'users:login') + '?next=' + reverse(
-            'posts:post_edit', kwargs={'post_id': self.post.id}))
+        self.assertRedirects(
+            response, f"{reverse(('users:login'))}?next="
+            f"{reverse('posts:post_edit', kwargs={'post_id': self.post.id})}"
+        )
         post_edit_guest = Post.objects.get(id=self.post.id)
         self.assertEqual(post_edit_guest.text, self.post.text)
 
@@ -236,11 +237,10 @@ class CommentsTest(TestCase):
         self.assertEqual(Comment.objects.all().count(), comment_count + 1)
         self.assertTrue(Comment.objects.filter(
             text=form_data['text'],
-            author=self.user
+            author=self.user,
+            post=self.post
         ).exists()
         )
-        first_comment = response.context.get('comments')[0]
-        self.assertNotEqual(first_comment, form_data['text'])
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_comment_for_non_auth_user(self):
@@ -253,6 +253,7 @@ class CommentsTest(TestCase):
             data=form_data,
             follow=True
         )
-        self.assertRedirects(response, reverse(
-            'users:login') + '?next=' + reverse(
-            'posts:add_comment', kwargs={'post_id': self.post.id}))
+        self.assertRedirects(
+            response, f"{reverse('users:login')}?next="
+            f"{reverse('posts:add_comment', kwargs={'post_id': self.post.id})}"
+        )
