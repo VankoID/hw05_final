@@ -222,8 +222,8 @@ class CommentsTest(TestCase):
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
-        var_comment = response.context.get('comments')[0]
-        self.assertEqual(var_comment, CommentsTest.comment)
+        var_comment_first = response.context.get('comments')[0]
+        self.assertEqual(var_comment_first, CommentsTest.comment)
         self.assertEqual(len(
             response.context.get('comments')), Comment.objects.filter(
                 post__pk=self.post.pk).count()
